@@ -1,4 +1,4 @@
-// Create canvas
+// Canvas Vars
 var canvas;
 var ctx;
 
@@ -11,6 +11,7 @@ function createCanvas() {
 	document.body.appendChild(canvas);
 
 	render();
+	playInstrument(piano, originalTheme);
 }
 
 function render() {
