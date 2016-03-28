@@ -11,7 +11,7 @@ function createCanvas() {
 	document.body.appendChild(canvas);
 
 	render();
-	playInstrument(piano, originalTheme);
+	loadSong("originalTheme");
 }
 
 function render() {

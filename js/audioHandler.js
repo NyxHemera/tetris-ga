@@ -1,72 +1,114 @@
-var bpm = 88;
+var bpm = 140 / 4;
 var beat = 60 / bpm;
 
-var originalTheme = [
-		'G4',0, 
-		'D4',.5, 'E4',.75, 'F4',1, 
-		'E4',1.5, 'D4',1.75, 'C4',2.0, 
-		'C4',2.5, 'E4',2.75, 'G4',3.0, 
-		'F4',3.5, 'E4',3.75, 'D4',4.0, 
-		'E4',4.75, 'F4',5.0, 
-		'G4',5.5, 'E4',6.0, 
-		'C4',6.5, 'C4',7.0
-
-
-]
-
 var bass = new Wad({
-	source : 'sine',
-	volume : .9, //Peak volume ranges from 0-infinity, dont set higher than 1
-	globalReverb : true,
+	source : 'square',
+	volume : 1, //Peak volume ranges from 0-infinity, dont set higher than 1
 	//loop : false, //If True the audio will loop, this only works for audio clips, not oscillators
 	//pitch : "A4" Set a default pitch if you don't want to set one during play()
 	env : {
-		attack : .02, //Time in seconds from onset to peak volume. common values range from .05 to .3
-		decay : .1, //Time in seconds from peak volume to sustain volume
-		sustain : .9, //Sustain volume level. This is a percent of peak volume, 0-1 is normal.
+		attack : beat * .001, //Time in seconds from onset to peak volume. common values range from .05 to .3
+		decay : beat * .01, //Time in seconds from peak volume to sustain volume
+		sustain : .8, //Sustain volume level. This is a percent of peak volume, 0-1 is normal.
 		hold : beat * .4, //Time in seconds to maintain the sustain volume. If not set, oscilators must be manually stopped.
-		release : beat * .1
+		release : beat * .01
+	}
+})
+
+var bass2 = new Wad({
+	source : 'square',
+	volume : .4, //Peak volume ranges from 0-infinity, dont set higher than 1
+	//loop : false, //If True the audio will loop, this only works for audio clips, not oscillators
+	//pitch : "A4" Set a default pitch if you don't want to set one during play()
+	env : {
+		attack : beat * .001, //Time in seconds from onset to peak volume. common values range from .05 to .3
+		decay : beat * .01, //Time in seconds from peak volume to sustain volume
+		sustain : .3, //Sustain volume level. This is a percent of peak volume, 0-1 is normal.
+		hold : beat * .4, //Time in seconds to maintain the sustain volume. If not set, oscilators must be manually stopped.
+		release : beat * .01
 	}
 })
 
 var piano = new Wad({
 	source : 'square',
-	volume : 1.4,
+	volume : .8,
 	env : {
-		attack : .01,
-		decay : .005,
+		attack : beat * .01,
+		decay : beat * .005,
 		sustain : .5,
 		hold : beat * .20,
-		release : beat * .15,
-	
+		release : beat * .15
 	}
 })
 
-function playBass(pitch, wait) {
-	//bass.play();
-	bass.play({pitch:pitch, wait:beat*wait});
-}
+var snare = new Wad ({
+   source : 'noise', 
+   volume : 1,
+    env : {
+        attack : beat * .001, 
+        decay : beat * .01, 
+        sustain : .4, 
+        hold : .03, 
+        release : beat * .01
+    }, 
+    filter : {
+        type : 'bandpass', 
+        frequency : 300, 
+        q : .180
+    }
+})
 
-function playPiano(pitch, wait) {
-	piano.play({pitch:pitch, wait:beat*wait});
-}
-
-function playInstrument(instrument, song) {
-	for(var i=0; i<song.length; i++){
-		var hold = song[i+3] - song[i+1];
-		if(i+3 > song.length) {
-			hold = .5;
-		}
+function playInstrument(instrument, pitch, duration, wait) {
+	console.log(pitch);
+	console.log(duration);
+	console.log(wait);
+	if(pitch === 'REST') {
+			
+	}else {
 		instrument.play({
-			pitch:song[i], 
-			wait:beat * song[++i], 
-			env:{
-				release:beat*hold
-			}});
-	}	
+			pitch: pitch,
+			wait: beat*wait,
+			env: {
+				hold: (beat*duration - instrument.env.attack - instrument.env.decay - instrument.env.release)
+			}
+		});	
+	}
 }
 
+function loadInstrument(intsObject) {
+	var timecount = 0;
+	for(var i=0; i<intsObject.notes.length; i++) {
+		//console.log("playing");
+		var note = intsObject.notes[i];
+		//console.log(note);
+		//console.log(note.pitch);
+		//console.log(note.duration);
+		playInstrument(intsObject.instrument, note.pitch, note.duration, timecount);
+		timecount = timecount + note.duration;
+	}
+}
 
+function handleSong(songObject) {
+	//choose correct instruments
+	//play instruments
+	var intsArr = [bass, bass2, snare];
+	songObject.instruments[0].instrument = intsArr[0];
+	loadInstrument(songObject.instruments[0]);
+	//songObject.instruments[1].instrument = intsArr[1];
+	//loadInstrument(songObject.instruments[1]);
+	songObject.instruments[2].instrument = intsArr[2];
+	loadInstrument(songObject.instruments[2]);
+
+	/*for(var i=0; i<songObject.instruments.length; i++) {
+		songObject.instruments[i].instrument = intsArr[i];
+		loadInstrument(songObject.instruments[i]);
+	}*/
+}
+
+function loadSong(songName) {
+	songName = "/js/json/" + songName + ".json";
+	$.getJSON(songName, handleSong);
+}
 
 
 
