@@ -4,6 +4,7 @@ var ctx;
 
 var bw = 20;
 var currentPiece;
+var pieceList = [];
 
 // Update speed in ms
 var speed = 300;
@@ -34,7 +35,8 @@ class Piece {
 					this.blockPos[0] += x; // Move Right
 				}
 			} else {
-				// Stop
+				// Bottom Collision
+				grabNewPiece();
 			}
 			this.updateBCD(this.blockPos[0], this.blockPos[1]);
 		}
@@ -184,6 +186,17 @@ function createCanvas() {
 	document.body.appendChild(canvas);
 }
 
+function grabNewPiece() {
+	pieceList.push(currentPiece);
+	currentPiece = getRandomPiece();
+}
+
+function renderList() {
+	for(var i=0; i<pieceList.length; i++) {
+		pieceList[i].render();
+	}
+}
+
 function getRandomPiece() {
 	switch (Math.floor(Math.random() * 100) % 5) {
 		case 0:
@@ -228,6 +241,8 @@ function render() {
 
 	// Current Piece
 	currentPiece.render();
+	// Old Pieces
+	renderList();
 }
 
 $(document).keydown(function(e) {
