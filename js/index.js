@@ -25,23 +25,32 @@ class Piece {
 		];
 	}
 	move(x, y) {
-			this.blockPos[0] += x;
-			this.blockPos[1] += y;
+			var collision = this.checkFrameCollision(this.blockPos);
+			if(!collision[2]) {
+				this.blockPos[1] += y; // Move Down
+				if(x > 0 && !collision[1]) {
+					this.blockPos[0] += x; // Move Left
+				}else if(x < 0 && !collision[0]) {
+					this.blockPos[0] += x; // Move Right
+				}
+			} else {
+				// Stop
+			}
 			this.updateBCD(this.blockPos[0], this.blockPos[1]);
 		}
 		// Iterate through the rotation states
 	rotate(direction) {
-			if (direction) {
-				// Rotate clockwise
-				this.currentRotation < 3 ? this.currentRotation++ : this.currentRotation = 0;
-				this.updateBCD(this.blockPos[0], this.blockPos[1]);
-			} else {
-				// Rotate counterclockwise
-				this.currentRotation > 0 ? this.currentRotation-- : this.currentRotation = 3;
-				this.updateBCD(this.blockPos[0], this.blockPos[1]);
-			}
+		if (direction) {
+			// Rotate clockwise
+			this.currentRotation < 3 ? this.currentRotation++ : this.currentRotation = 0;
+			this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		} else {
+			// Rotate counterclockwise
+			this.currentRotation > 0 ? this.currentRotation-- : this.currentRotation = 3;
+			this.updateBCD(this.blockPos[0], this.blockPos[1]);
 		}
-		// Update the bcd-block positions based on the a-block position
+	}
+	// Update the bcd-block positions based on the a-block position
 	updateBCD(x, y) {
 		for (var i = 2; i < this.blockPos.length; i++) {
 			this.blockPos[i] = x + this.deltaPos[this.currentRotation][i - 2];
@@ -49,14 +58,25 @@ class Piece {
 			this.blockPos[i] = y + this.deltaPos[this.currentRotation][i - 2];
 		}
 	}
-
 	drawCell(x, y) {
 		ctx.fillStyle = "blue";
 		ctx.fillRect(x * bw, y * bw, bw, bw);
 		ctx.strokeStyle = "white";
 		ctx.strokeRect(x * bw, y * bw, bw, bw);
 	}
-
+	checkFrameCollision(pos) {
+		var collision = [false, false, false];
+		for(var i=0; i<pos.length; i++) {
+			// Run X collision
+			!collision[0] ? collision[0] = pos[i] <= 0 : ""; // Collides with Left Wall
+			!collision[1] ? collision[1] = pos[i] >= (canvas.width/bw - 1) : ""; // Collides with Right Wall
+			i++; //Must go here so it always increments
+			// Run Y collision
+			!collision[2] ? collision[2] = pos[i] >= (canvas.height/bw - 1) : ""; // Collides with Floor
+		}
+		console.log(collision);
+		return collision;
+	}
 	render() {
 		for (var i = 0; i < this.blockPos.length; i++) {
 			this.drawCell(this.blockPos[i++], this.blockPos[i]);
