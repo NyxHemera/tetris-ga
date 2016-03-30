@@ -5,6 +5,8 @@ var ctx;
 var bw = 20;
 var currentPiece;
 var pieceList = [];
+var rowFill = []; // Will contain the number of blocks in each row
+var columnTops = []; // Will contain the y value of the highest block in each column
 
 // Update speed in ms
 var speed = 300;
@@ -26,12 +28,16 @@ class Piece {
 		];
 	}
 	move(x, y) {
-			var collision = this.checkFrameCollision(this.blockPos);
-			if(!collision[2]) {
+			var fCollision = this.checkFrameCollision(this.blockPos);
+			// If moving down, checkBlockCollision, else don't...
+			var bCollision = y > 0 ? this.checkBlockCollision(this.blockPos) : false;
+			console.log(bCollision);
+			// If not colliding with the bottom or another piece:
+			if(!fCollision[2] && !bCollision) {
 				this.blockPos[1] += y; // Move Down
-				if(x > 0 && !collision[1]) {
+				if(x > 0 && !fCollision[1]) {
 					this.blockPos[0] += x; // Move Left
-				}else if(x < 0 && !collision[0]) {
+				}else if(x < 0 && !fCollision[0]) {
 					this.blockPos[0] += x; // Move Right
 				}
 			} else {
@@ -76,8 +82,16 @@ class Piece {
 			// Run Y collision
 			!collision[2] ? collision[2] = pos[i] >= (canvas.height/bw - 1) : ""; // Collides with Floor
 		}
-		console.log(collision);
 		return collision;
+	}
+	checkBlockCollision(pos) {
+		// Assume block moving down
+		for(var i=0; i<pos.length; i++) {
+			if(columnTops[pos[i]] === (pos[i+1] + 1)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	render() {
 		for (var i = 0; i < this.blockPos.length; i++) {
@@ -178,6 +192,20 @@ class Square extends Piece {
 	}
 }
 
+function updateGrid(piece) {
+	var pos = piece.blockPos;
+	// Update rowFill
+	for(var i=1; i<pos.length; i+=2) {
+		rowFill[pos[i]]++; // Increment rowFill for every block on that y
+	}
+	// Update columnTops
+	for(var i=0; i<pos.length; i+=2) {
+		if(columnTops[pos[i]] > pos[i+1]) { // If the y position of this block is higher than the highest y position stored in that column
+			columnTops[pos[i]] = pos[i+1]; // Set the highest y position of that column to this block's position
+		}
+	}
+}
+
 function createCanvas() {
 	canvas = document.createElement("canvas");
 	ctx = canvas.getContext("2d");
@@ -188,6 +216,9 @@ function createCanvas() {
 
 function grabNewPiece() {
 	pieceList.push(currentPiece);
+	// Updates the number of blocks in each row and the highest blocks in the columns
+	updateGrid(currentPiece);
+	// checkRowCompletion();
 	currentPiece = getRandomPiece();
 }
 
@@ -221,8 +252,20 @@ function getRandomPiece() {
 
 function init() {
 	createCanvas();
+	initializeVariables();
 	currentPiece = getRandomPiece();
 	gameLoop = setInterval(update, loopSpeed);
+}
+
+function initializeVariables() {
+	// Init Columns
+	for(var i=0; i<canvas.width/bw; i++) {
+		columnTops.push(canvas.height/bw);
+	}
+	// Init Rows
+	for(var i=0; i<(canvas.height/bw); i++) {
+		rowFill.push(0);
+	}
 }
 
 function update() {
