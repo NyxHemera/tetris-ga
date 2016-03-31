@@ -4,9 +4,7 @@ var ctx;
 
 var bw = 20;
 var currentPiece;
-var pieceList = [];
-var rowFill = []; // Will contain the number of blocks in each row
-var columnTops = []; // Will contain the y value of the highest block in each column
+var blockGrid = []; // Contains all existing blocks on the board except currentPiece
 
 // Update speed in ms
 var speed = 300;
@@ -29,19 +27,22 @@ class Piece {
 	}
 	move(x, y) {
 			var fCollision = this.checkFrameCollision(this.blockPos);
+			//console.log("fCollision");
+			//console.log(fCollision);
 			// If moving down, checkBlockCollision, else don't...
-			var bCollision = y > 0 ? this.checkBlockCollision(this.blockPos) : false;
-			console.log(bCollision);
+			var bCollision = this.checkBlockCollision(this.blockPos);
+			//console.log("bCollision");
+			//console.log(bCollision);
 			// If not colliding with the bottom or another piece:
-			if(!fCollision[2] && !bCollision) {
+			if(!fCollision[2] && !bCollision[2]) {
 				this.blockPos[1] += y; // Move Down
-				if(x > 0 && !fCollision[1]) {
-					this.blockPos[0] += x; // Move Left
-				}else if(x < 0 && !fCollision[0]) {
+				if(x > 0 && !fCollision[1] && !bCollision[1]) { // If not colliding with the right wall or a piece to the right
 					this.blockPos[0] += x; // Move Right
+				}else if(x < 0 && !fCollision[0] && !bCollision[0]) { // If not colliding with the left wall or a piece to the left
+					this.blockPos[0] += x; // Move Left
 				}
 			} else {
-				// Bottom Collision
+				// Bottom Collision or Piece-on-Piece Collision
 				grabNewPiece();
 			}
 			this.updateBCD(this.blockPos[0], this.blockPos[1]);
@@ -84,7 +85,7 @@ class Piece {
 		}
 		return collision;
 	}
-	checkBlockCollision(pos) {
+	/*checkBlockCollision(pos) {
 		// Assume block moving down
 		for(var i=0; i<pos.length; i++) {
 			if(columnTops[pos[i]] === (pos[i+1] + 1)) {
@@ -92,6 +93,19 @@ class Piece {
 			}
 		}
 		return false;
+	}*/
+	checkBlockCollision(pos) {
+		var collision = [false, false, false];
+		for(var i=0; i<pos.length; i++) {
+
+			!collision[0] ? collision[0] = blockGrid[pos[i+1]].indexOf(pos[i]-1) != -1 : ""; // Collision Left; If there is a block to the left(x-1)
+			!collision[1] ? collision[1] = blockGrid[pos[i+1]].indexOf(pos[i]+1) != -1 : ""; // Collision Right; If there is a block to the right(x+1)
+			var row;
+			blockGrid[pos[i+1]+ 1] != undefined ? row = blockGrid[pos[i+1]+ 1] : row = [];
+			!collision[2] ? collision[2] = row.indexOf(pos[i]) != -1 : ""; // Collision Bottom; If there is a block below(y+1, x)
+			i++;
+		}
+		return collision;
 	}
 	render() {
 		for (var i = 0; i < this.blockPos.length; i++) {
@@ -192,18 +206,36 @@ class Square extends Piece {
 	}
 }
 
-function updateGrid(piece) {
-	var pos = piece.blockPos;
-	// Update rowFill
-	for(var i=1; i<pos.length; i+=2) {
-		rowFill[pos[i]]++; // Increment rowFill for every block on that y
+function addBlock(x,y) {
+	blockGrid[y].push(x);
+}
+
+function removeRow(rowIndex) {
+	console.log(blockGrid);
+	blockGrid.splice(rowIndex, 1);
+	blockGrid.unshift([]);
+	console.log(blockGrid);
+}
+
+function checkRows() {
+	for(var i=0; i<blockGrid.length; i++) {
+		blockGrid[i].length >= canvas.width/bw ? removeRow(i) : "";
 	}
-	// Update columnTops
-	for(var i=0; i<pos.length; i+=2) {
-		if(columnTops[pos[i]] > pos[i+1]) { // If the y position of this block is higher than the highest y position stored in that column
-			columnTops[pos[i]] = pos[i+1]; // Set the highest y position of that column to this block's position
+}
+
+function renderBlocks() {
+	for(var i=0; i<blockGrid.length; i++) {
+		for(var j=0; j<blockGrid[i].length; j++) {
+			drawCell(blockGrid[i][j], i);
 		}
 	}
+}
+
+function 	drawCell(x, y) {
+	ctx.fillStyle = "blue";
+	ctx.fillRect(x * bw, y * bw, bw, bw);
+	ctx.strokeStyle = "white";
+	ctx.strokeRect(x * bw, y * bw, bw, bw);
 }
 
 function createCanvas() {
@@ -215,17 +247,13 @@ function createCanvas() {
 }
 
 function grabNewPiece() {
-	pieceList.push(currentPiece);
-	// Updates the number of blocks in each row and the highest blocks in the columns
-	updateGrid(currentPiece);
+	for(var i=0; i<currentPiece.blockPos.length; i++) {
+		addBlock(currentPiece.blockPos[i], currentPiece.blockPos[i+1]);
+		i++;
+	}
+	checkRows();
 	// checkRowCompletion();
 	currentPiece = getRandomPiece();
-}
-
-function renderList() {
-	for(var i=0; i<pieceList.length; i++) {
-		pieceList[i].render();
-	}
 }
 
 function getRandomPiece() {
@@ -258,14 +286,11 @@ function init() {
 }
 
 function initializeVariables() {
-	// Init Columns
-	for(var i=0; i<canvas.width/bw; i++) {
-		columnTops.push(canvas.height/bw);
+	console.log(blockGrid);
+	for(var i=0; i<canvas.height/bw; i++) {
+		blockGrid.push([]);
 	}
-	// Init Rows
-	for(var i=0; i<(canvas.height/bw); i++) {
-		rowFill.push(0);
-	}
+	console.log(blockGrid);
 }
 
 function update() {
@@ -285,7 +310,7 @@ function render() {
 	// Current Piece
 	currentPiece.render();
 	// Old Pieces
-	renderList();
+	renderBlocks();
 }
 
 $(document).keydown(function(e) {
