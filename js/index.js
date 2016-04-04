@@ -7,6 +7,9 @@ class Piece {
 		this.currentRotation = 0;
 		this.deltaPos = [ [], [], [], [] ];
 	}
+	toString() {
+		return "";
+	}
 	move(x, y, bool) { // Move will return array of true on either a successful move or no move, or false on collision
 		var success = [!x, !y]; // If not moving, set true, if moving set false. Numbers other than 0 are truthy.
 		if(bool) { // Bool allows for forced movement, no matter the collision
@@ -168,6 +171,9 @@ class Line extends Piece {
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
 	}
+	toString() {
+		return "Line";
+	}
 	// Iterate through the rotation states
 	rotate(direction) {
 		var originalRotation = this.currentRotation;
@@ -278,6 +284,9 @@ class TShape extends Piece {
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
 	}
+	toString() {
+		return "T-Shape";
+	}
 }
 class LShape extends Piece {
 	constructor(gameBoard) {
@@ -292,6 +301,9 @@ class LShape extends Piece {
 		this.currentRotation = 1;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+	}
+	toString() {
+		return "L-Shape";
 	}
 }
 class ReverseL extends Piece {
@@ -308,6 +320,9 @@ class ReverseL extends Piece {
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
 	}
+	toString() {
+		return "J-Shape";
+	}
 }
 class Square extends Piece {
 	constructor(gameBoard) {
@@ -321,6 +336,9 @@ class Square extends Piece {
 	}
 	rotate() {
 		console.log("Squares don't rotate...");
+	}
+	toString() {
+		return "Square";
 	}
 }
 class SShape extends Piece {
@@ -337,6 +355,9 @@ class SShape extends Piece {
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
 	}
+	toString() {
+		return "S-Shape";
+	}
 }
 class ZShape extends Piece {
 	constructor(gameBoard) {
@@ -352,6 +373,9 @@ class ZShape extends Piece {
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
 	}
+	toString() {
+		return "Z-Shape";
+	}
 }
 
 class GameBoard {
@@ -361,7 +385,7 @@ class GameBoard {
 		this.ctx = this.canvas.getContext("2d");
 		this.canvas.width = cWidth;
 		this.canvas.height = cWidth*1.8;
-		document.body.appendChild(this.canvas);
+		$('.wrap-game').append(this.canvas);
 
 		this.bw = cWidth / 10;
 		this.currentPiece;
@@ -379,9 +403,9 @@ class GameBoard {
 	// Initial Creation
 	init() {
 		this.currentPiece = this.getRandomPiece(); // Sets the current Piece being controlled
+		SB1.updateCount();
 		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
-		//this.currentPiece = new Line(this);
-		//this.nextPiece = new Line(this);
+		SB1.updateNextPiece(this.nextPiece);
 		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
 		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
 	}
@@ -436,9 +460,14 @@ class GameBoard {
 	}
 	checkRows() {
 		var blockGrid = this.blockGrid;
+		var numRemoved = 0;
 		for (var i = 0; i < blockGrid.length; i++) {
-			blockGrid[i].length >= this.canvas.width / this.bw ? this.removeRow(i) : ""; // If row full, remove row.
+			if(blockGrid[i].length >= this.canvas.width / this.bw) {
+				this.removeRow(i);
+				numRemoved++;
+			}
 		}
+		SB1.updateScore(numRemoved);
 	}
 	grabNewPiece() {
 		var currentPiece = this.currentPiece;
@@ -446,12 +475,15 @@ class GameBoard {
 			this.addBlock(currentPiece.blockPos[i], currentPiece.blockPos[++i]); // Add Blocks to Grid
 		}
 		this.checkRows(); // Check for complete Rows
+		SB1.updateCount();
 		this.currentPiece = this.nextPiece; // Switch to the next piece
 		this.nextPiece = this.getRandomPiece();
-		//this.nextPiece = new Line(this);
+		SB1.updateNextPiece(this.nextPiece);
 	}
 	getRandomPiece() {
-		switch (Math.floor(Math.random() * 100) % 7) {
+		var rand = Math.floor(Math.random() * 100) % 7;
+		SB1.logPiece(rand);
+		switch (rand) {
 			case 0:
 				return new Line(this);
 				break;
@@ -479,7 +511,53 @@ class GameBoard {
 	}
 }
 
+class ScoreBoard {
+	constructor() {
+		this.score = 0;
+		this.stagedCount;
+		this.pieceCount = [0,0,0,0,0,0,0];
+	}
+
+	logPiece(stageNum) {
+		this.stagedCount = stageNum;
+	}
+
+	updateCount() {
+		this.pieceCount[this.stagedCount]++;
+	}
+
+	updateNextPiece(nextPiece) {
+		//nextCanvas.drawPiece(nextPiece);
+		//updatePieceName(nextPiece.toString());
+	}
+
+	updateScore(numLines) {
+		switch(numLines) {
+			case 0 :
+				this.score += 25;
+				break;
+			case 1 :
+				this.score += 100;
+				break;
+			case 2 :
+				this.score += 250;
+				break;
+			case 3 :
+				this.score += 500;
+				break;
+			case 4 :
+				this.score += 1000;
+				break;
+			default :
+				console.log("Invalid numLines recieved: " + numLines);
+				break;
+		}
+		console.log(this.score);
+	}
+}
+
 var GB1;
+var SB1;
 
 $(document).keydown(function(e) {
 	switch (e.keyCode) {
@@ -511,5 +589,6 @@ $(document).keydown(function(e) {
 
 $(document).ready(function() {
 	GB1 = new GameBoard(300);
+	SB1 = new ScoreBoard();
 	GB1.init();
 });
