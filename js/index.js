@@ -8,8 +8,6 @@ class Piece {
 		this.deltaPos = [ [], [], [], [] ];
 	}
 	move(x, y, bool) { // Move will return array of true on either a successful move or no move, or false on collision
-		var fCollision = this.checkFrameCollision(this.blockPos);
-		var bCollision = this.checkBlockCollision(this.blockPos);
 		var success = [!x, !y]; // If not moving, set true, if moving set false. Numbers other than 0 are truthy.
 		if(bool) { // Bool allows for forced movement, no matter the collision
 			this.blockPos[0] += x;
@@ -17,6 +15,9 @@ class Piece {
 			this.updateBCD(this.blockPos[0], this.blockPos[1]);
 			return [true, true];
 		}
+
+		var fCollision = this.checkFrameCollision(this.blockPos);
+		var bCollision = this.checkBlockCollision(this.blockPos);
 
 		// If not colliding with the bottom or another piece:
 		if (!fCollision[2] && !bCollision[2]) {
@@ -52,11 +53,17 @@ class Piece {
 					// If that didn't...kick to the left
 					this.move(-2,0,true);
 					this.updateBCD(this.blockPos[0], this.blockPos[1]);
-				}if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
-					// If that didn't...move back to the original rotation, don't rotate.
-					this.move(1,0,true);
-					this.currentRotation = originalRotation;
-					this.updateBCD(this.blockPos[0], this.blockPos[1]);
+					if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
+						// If that didn't...move back one above the original rotation.
+						this.move(1,-1,true);
+						this.updateBCD(this.blockPos[0], this.blockPos[1]);
+						if(this.checkBlockClipping(this.blockPos)) { // Check if kicking up gives a good result
+							// If that didn't...move back to original position with no rotation
+							this.move(0,1,true);
+							this.currentRotation = originalRotation;
+							this.updateBCD(this.blockPos[0], this.blockPos[1]);
+						}
+					}
 				}
 			}
 		} else {
@@ -71,11 +78,17 @@ class Piece {
 					// If that didn't...kick to the left
 					this.move(-2,0,true);
 					this.updateBCD(this.blockPos[0], this.blockPos[1]);
-				}if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
-					// If that didn't...move back to the original rotation, don't rotate.
-					this.move(1,0,true);
-					this.currentRotation = originalRotation;
-					this.updateBCD(this.blockPos[0], this.blockPos[1]);
+					if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
+						// If that didn't...move back one above the original rotation.
+						this.move(1,-1,true);
+						this.updateBCD(this.blockPos[0], this.blockPos[1]);
+						if(this.checkBlockClipping(this.blockPos)) { // Check if kicking up gives a good result
+							// If that didn't...move back to original position with no rotation
+							this.move(0,1,true);
+							this.currentRotation = originalRotation;
+							this.updateBCD(this.blockPos[0], this.blockPos[1]);
+						}
+					}
 				}
 			}
 		}
@@ -122,13 +135,14 @@ class Piece {
 		var canvas = this.GB.canvas;
 		var bw = this.GB.bw;
 		for(var i=0; i< pos.length; i++) {
-			var top = pos[i+1]<0;
+			var top = pos[i+1]<0 || pos[i+1]>=canvas.height/bw; // Checks to see if block is out of the frame. If it is, don't run indexOf(prevents uncaught typeerror)
 			var block;
 			top ? block = false : block = blockGrid[pos[i+1]].indexOf(pos[i]) != -1;
 			var leftWall = pos[i] < 0
 			var rightWall = pos[i] >= canvas.width/bw;
-			if((!top && block) || leftWall || rightWall) {
-				return true; // If clipping with block, leftframe, or right rame, return true, else continue checking
+			var bottomWall = pos[i+1]>=canvas.height/bw;
+			if(block || leftWall || rightWall || bottomWall) {
+				return true; // If clipping with block, leftframe, right frame, or bottom frame, return true, else continue checking
 			}
 			i++;
 		}
@@ -180,11 +194,21 @@ class Line extends Piece {
 							this.move(-1,0,true);
 							this.updateBCD(this.blockPos[0], this.blockPos[1]);
 							if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
-								// If that didn't...move back to the original rotation, don't rotate.
-								this.move(2,0,true);
-								this.currentRotation = originalRotation;
-								this.updateBlockPos(4);
+								// If that didn't...move back to the original rotation and up one block.
+								this.move(2,-1,true);
 								this.updateBCD(this.blockPos[0], this.blockPos[1]);
+								if(this.checkBlockClipping(this.blockPos)) {
+									// If that didn't...move up one more.
+									this.move(0,-1,true);
+									this.updateBCD(this.blockPos[0], this.blockPos[1]);
+									if(this.checkBlockClipping(this.blockPos)) { // Check if kicking up gives a good result
+										// If that didn't...move back to the original rotation, don't rotate.
+										this.move(0,2,true);
+										this.currentRotation = originalRotation;
+										this.updateBlockPos(4);
+										this.updateBCD(this.blockPos[0], this.blockPos[1]);
+									}
+								}
 							}
 						}
 					}
@@ -212,11 +236,21 @@ class Line extends Piece {
 							this.move(-1,0,true);
 							this.updateBCD(this.blockPos[0], this.blockPos[1]);
 							if(this.checkBlockClipping(this.blockPos)) { // Check if kicking to the left gives a good result
-								// If that didn't...move back to the original rotation, don't rotate.
-								this.move(2,0,true);
-								this.currentRotation = originalRotation;
-								this.updateBlockPos(2);
+								// If that didn't...move back to the original rotation and up one block.
+								this.move(2,-1,true);
 								this.updateBCD(this.blockPos[0], this.blockPos[1]);
+								if(this.checkBlockClipping(this.blockPos)) {
+									// If that didn't...move up one more.
+									this.move(0,-1,true);
+									this.updateBCD(this.blockPos[0], this.blockPos[1]);
+									if(this.checkBlockClipping(this.blockPos)) { // Check if kicking up gives a good result
+										// If that didn't...move back to the original rotation, don't rotate.
+										this.move(0,2,true);
+										this.currentRotation = originalRotation;
+										this.updateBlockPos(4);
+										this.updateBCD(this.blockPos[0], this.blockPos[1]);
+									}
+								}
 							}
 						}
 					}
