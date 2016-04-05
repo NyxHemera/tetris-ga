@@ -416,8 +416,8 @@ class GameBoard {
 	init() {
 		this.currentPiece = this.getRandomPiece(); // Sets the current Piece being controlled
 		SB1.updateCount();
+		SB1.drawScoreBoard();
 		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
-		SB1.updateNextPiece(this.nextPiece);
 		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
 		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
 	}
@@ -430,6 +430,7 @@ class GameBoard {
 			this.dGravTime = 0;
 			var moveSucc = this.currentPiece.move(0, 1, false); // Update Gravity
 			if(!moveSucc[1]) {
+				SB1.updateCount();
 				this.grabNewPiece();
 				SB1.drawScoreBoard();
 			}
@@ -492,34 +493,39 @@ class GameBoard {
 			this.addBlock(currentPiece.blockPos[i], currentPiece.blockPos[++i]); // Add Blocks to Grid
 		}
 		this.checkRows(); // Check for complete Rows
-		SB1.updateCount();
 		this.currentPiece = this.nextPiece; // Switch to the next piece
 		this.nextPiece = this.getRandomPiece();
-		SB1.updateNextPiece(this.nextPiece);
 	}
 	getRandomPiece() {
 		var rand = Math.floor(Math.random() * 100) % 7;
 		SB1.logPiece(rand);
 		switch (rand) {
 			case 0:
+				SB1.updateNextPiece(new Line(SB1));
 				return new Line(this);
 				break;
 			case 1:
+				SB1.updateNextPiece(new LShape(SB1));
 				return new LShape(this);
 				break;
 			case 2:
+				SB1.updateNextPiece(new ReverseL(SB1));
 				return new ReverseL(this);
 				break;
 			case 3:
+				SB1.updateNextPiece(new Square(SB1));
 				return new Square(this);
 				break;
 			case 4:
+				SB1.updateNextPiece(new TShape(SB1));
 				return new TShape(this);
 				break;
 			case 5:
+				SB1.updateNextPiece(new SShape(SB1));
 				return new SShape(this);
 				break;
 			case 6:
+				SB1.updateNextPiece(new ZShape(SB1));
 				return new ZShape(this);
 				break;
 			default:
@@ -532,8 +538,10 @@ class ScoreBoard {
 	constructor() {
 		this.score = 0;
 		this.lines = 0;
+		this.bw = GB1.bw;
 		this.stagedCount = 0;
-		this.pieceCount = [0,0,0,0,0,0,0]
+		this.pieceCount = [0,0,0,0,0,0,0];
+		this.nextPiece;
 		this.canvas;
 		this.ctx;
 		this.buildScoreBoard();
@@ -556,12 +564,22 @@ class ScoreBoard {
 
 	updateCount() {
 		this.pieceCount[this.stagedCount]++;
-		console.log(this.pieceCount);
 	}
 
-	updateNextPiece(nextPiece) {
-		//nextCanvas.drawPiece(nextPiece);
-		//updatePieceName(nextPiece.toString());
+	updateNextPiece(next) {
+		this.nextPiece = next;
+		var name = this.nextPiece.toString();
+		if(name === "Square") {
+			this.nextPiece.blockPos[0] = 1.5;
+			this.nextPiece.blockPos[1] = 2.5;
+		}else if(name === "Line") {
+			this.nextPiece.blockPos[0] = 2.5;
+			this.nextPiece.blockPos[1] = 3;
+		}else {
+			this.nextPiece.blockPos[0] = 2;
+			this.nextPiece.blockPos[1] = 2.5;
+		}
+		this.nextPiece.updateBCD(this.nextPiece.blockPos[0], this.nextPiece.blockPos[1]);
 	}
 
 	updateScore(numLines) {
@@ -593,48 +611,61 @@ class ScoreBoard {
 		// Background
 		this.ctx.fillStyle = "#FFFFFF";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-		//Draw Permanent Text
+		// Draw Permanent Text
 		this.drawTexts();
-		//Draw Score
-
-		//Draw Next Piece
-
-		//Draw Num Pieces
+		// Draw Next Piece Box
+		this.drawBox();
+		// Draw Next Piece
+		this.nextPiece.render();
 	}
 
-		drawTexts() {
-			var unit = GB1.bw;
-			// Initial font setup
-			this.ctx.font = "10px Arial";
-			this.ctx.fillStyle = "#000000";
-			this.ctx.textAlign = 'center';
-			// Next: 
-			this.ctx.fillText("Next: ", this.canvas.width/2, unit);
-			// NextPiece:
+	drawBox() {
+		this.ctx.strokeStyle = "black";
+		this.ctx.strokeRect(0, 2*this.bw, 5*this.bw, 3*this.bw);
+	}
 
-			// Score:
-			this.ctx.textAlign = 'left';
-			this.ctx.fillText("Score:" + this.score, unit/2, unit*6);
+	drawCell(x, y, color) {
+		var bw = this.bw;
+		// this.ctx.fillStyle = this.currentPiece.color;
+		this.ctx.fillStyle = color;
+		this.ctx.fillRect(x * bw, y * bw, bw, bw);
+		this.ctx.strokeStyle = "white";
+		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
+	}
 
-			// Lines:
-			this.ctx.fillText("Lines:" + this.lines, unit/2, unit*8);
+	drawTexts() {
+		var unit = GB1.bw;
+		// Initial font setup
+		this.ctx.font = "10px Arial";
+		this.ctx.fillStyle = "#000000";
+		this.ctx.textAlign = 'center';
+		// Next: 
+		this.ctx.fillText("Next: ", this.canvas.width/2, unit);
+		// NextPiece:
 
-			// Used:
-			// Line:
-			this.ctx.fillText("Line:" + this.pieceCount[0], unit/2, unit*10);
-			// LShape:
-			this.ctx.fillText("LShape:" + this.pieceCount[1], unit/2, unit*11);
-			// RLShape:
-			this.ctx.fillText("JShape:" + this.pieceCount[2], unit/2, unit*12);
-			// Square:
-			this.ctx.fillText("Square:" + this.pieceCount[3], unit/2, unit*13); 
-			// TShape:
-			this.ctx.fillText("TShape:" + this.pieceCount[4], unit/2, unit*14);
-			// SShape:
-			this.ctx.fillText("SShape:" + this.pieceCount[5], unit/2, unit*15);
-			// ZShape:
-			this.ctx.fillText("ZShape:" + this.pieceCount[6], unit/2, unit*16);
-		}
+		// Score:
+		this.ctx.textAlign = 'left';
+		this.ctx.fillText("Score:" + this.score, unit/2, unit*6);
+
+		// Lines:
+		this.ctx.fillText("Lines:" + this.lines, unit/2, unit*8);
+
+		// Used:
+		// Line:
+		this.ctx.fillText("Line:" + this.pieceCount[0], unit/2, unit*10);
+		// LShape:
+		this.ctx.fillText("LShape:" + this.pieceCount[1], unit/2, unit*11);
+		// RLShape:
+		this.ctx.fillText("JShape:" + this.pieceCount[2], unit/2, unit*12);
+		// Square:
+		this.ctx.fillText("Square:" + this.pieceCount[3], unit/2, unit*13); 
+		// TShape:
+		this.ctx.fillText("TShape:" + this.pieceCount[4], unit/2, unit*14);
+		// SShape:
+		this.ctx.fillText("SShape:" + this.pieceCount[5], unit/2, unit*15);
+		// ZShape:
+		this.ctx.fillText("ZShape:" + this.pieceCount[6], unit/2, unit*16);
+	}
 }
 
 var GB1;
