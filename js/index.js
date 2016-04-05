@@ -6,6 +6,7 @@ class Piece {
 		this.blockPos[0] = Math.floor(this.GB.canvas.width / this.GB.bw / 2);
 		this.currentRotation = 0;
 		this.deltaPos = [ [], [], [], [] ];
+		this.color = "";
 	}
 	toString() {
 		return "";
@@ -153,7 +154,7 @@ class Piece {
 	}
 	render() {
 		for (var i = 0; i < this.blockPos.length; i++) {
-			this.GB.drawCell(this.blockPos[i++], this.blockPos[i]);
+			this.GB.drawCell(this.blockPos[i++], this.blockPos[i], this.color);
 		}
 	}
 }
@@ -170,6 +171,7 @@ class Line extends Piece {
 		this.currentRotation = 0;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#F4B523";
 	}
 	toString() {
 		return "Line";
@@ -283,6 +285,7 @@ class TShape extends Piece {
 		this.currentRotation = 3;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#0EC200";
 	}
 	toString() {
 		return "T-Shape";
@@ -301,6 +304,7 @@ class LShape extends Piece {
 		this.currentRotation = 1;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#EB4824";
 	}
 	toString() {
 		return "L-Shape";
@@ -319,6 +323,7 @@ class ReverseL extends Piece {
 		this.currentRotation = 1;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#1684FF";
 	}
 	toString() {
 		return "J-Shape";
@@ -333,6 +338,7 @@ class Square extends Piece {
 		this.currentRotation = 0;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#1A1A1A";
 	}
 	rotate() {
 		console.log("Squares don't rotate...");
@@ -354,6 +360,7 @@ class SShape extends Piece {
 		this.currentRotation = 3;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#B0009F";
 	}
 	toString() {
 		return "S-Shape";
@@ -372,6 +379,7 @@ class ZShape extends Piece {
 		this.currentRotation = 3;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
+		this.color = "#FFC174";
 	}
 	toString() {
 		return "Z-Shape";
@@ -385,14 +393,18 @@ class GameBoard {
 		this.ctx = this.canvas.getContext("2d");
 		this.canvas.width = cWidth;
 		this.canvas.height = cWidth*1.8;
+		this.canvas.id = 'gb';
 		$('.wrap-game').append(this.canvas);
+		$('.gb').css('display', 'inline-block');
 
 		this.bw = cWidth / 10;
 		this.currentPiece;
 		this.nextPiece;
 		this.blockGrid = []; // Contains all existing blocks on the board except currentPiece
+		this.colorGrid = [];
 		for (var i = 0; i < this.canvas.height / this.bw; i++) {
 			this.blockGrid.push([]); // Creates rows in the blockGrid. Row index corresponds to y value.
+			this.colorGrid.push([]);
 		}
 
 		this.speed = 500; // Speed that blocks fall, smaller is faster
@@ -419,6 +431,7 @@ class GameBoard {
 			var moveSucc = this.currentPiece.move(0, 1, false); // Update Gravity
 			if(!moveSucc[1]) {
 				this.grabNewPiece();
+				SB1.drawScoreBoard();
 			}
 		}
 		this.render();
@@ -438,13 +451,14 @@ class GameBoard {
 		var blockGrid = this.blockGrid;
 		for (var i = 0; i < blockGrid.length; i++) {
 			for (var j = 0; j < blockGrid[i].length; j++) {
-				this.drawCell(blockGrid[i][j], i);
+				this.drawCell(blockGrid[i][j], i, this.colorGrid[i][j]);
 			}
 		}
 	}
-	drawCell(x, y) {
+	drawCell(x, y, color) {
 		var bw = this.bw;
-		this.ctx.fillStyle = "blue";
+		// this.ctx.fillStyle = this.currentPiece.color;
+		this.ctx.fillStyle = color;
 		this.ctx.fillRect(x * bw, y * bw, bw, bw);
 		this.ctx.strokeStyle = "white";
 		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
@@ -453,10 +467,13 @@ class GameBoard {
 	// Piece and Grid Handlers
 	addBlock(x, y) {
 		this.blockGrid[y].push(x);
+		this.colorGrid[y].push(this.currentPiece.color);
 	}
 	removeRow(rowIndex) {
 		this.blockGrid.splice(rowIndex, 1); // Removes row
 		this.blockGrid.unshift([]); // Adds new row to the top
+		this.colorGrid.splice(rowIndex, 1);
+		this.colorGrid.unshift([]);
 	}
 	checkRows() {
 		var blockGrid = this.blockGrid;
@@ -514,8 +531,23 @@ class GameBoard {
 class ScoreBoard {
 	constructor() {
 		this.score = 0;
-		this.stagedCount;
-		this.pieceCount = [0,0,0,0,0,0,0];
+		this.lines = 0;
+		this.stagedCount = 0;
+		this.pieceCount = [0,0,0,0,0,0,0]
+		this.canvas;
+		this.ctx;
+		this.buildScoreBoard();
+	}
+
+	buildScoreBoard() {
+		this.canvas = document.createElement('canvas');
+		this.ctx = this.canvas.getContext('2d');
+		this.canvas.id = "wrap-score";
+		this.canvas.width = GB1.canvas.width/2;
+		this.canvas.height = GB1.canvas.height;
+		$('.wrap-game').append(this.canvas);
+		var wrap = $('#wrap-score');
+		wrap.css('display', 'inline-block');
 	}
 
 	logPiece(stageNum) {
@@ -524,6 +556,7 @@ class ScoreBoard {
 
 	updateCount() {
 		this.pieceCount[this.stagedCount]++;
+		console.log(this.pieceCount);
 	}
 
 	updateNextPiece(nextPiece) {
@@ -532,6 +565,7 @@ class ScoreBoard {
 	}
 
 	updateScore(numLines) {
+		this.lines += numLines;
 		switch(numLines) {
 			case 0 :
 				this.score += 25;
@@ -554,6 +588,53 @@ class ScoreBoard {
 		}
 		console.log(this.score);
 	}
+
+	drawScoreBoard() {
+		// Background
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		//Draw Permanent Text
+		this.drawTexts();
+		//Draw Score
+
+		//Draw Next Piece
+
+		//Draw Num Pieces
+	}
+
+		drawTexts() {
+			var unit = GB1.bw;
+			// Initial font setup
+			this.ctx.font = "10px Arial";
+			this.ctx.fillStyle = "#000000";
+			this.ctx.textAlign = 'center';
+			// Next: 
+			this.ctx.fillText("Next: ", this.canvas.width/2, unit);
+			// NextPiece:
+
+			// Score:
+			this.ctx.textAlign = 'left';
+			this.ctx.fillText("Score:" + this.score, unit/2, unit*6);
+
+			// Lines:
+			this.ctx.fillText("Lines:" + this.lines, unit/2, unit*8);
+
+			// Used:
+			// Line:
+			this.ctx.fillText("Line:" + this.pieceCount[0], unit/2, unit*10);
+			// LShape:
+			this.ctx.fillText("LShape:" + this.pieceCount[1], unit/2, unit*11);
+			// RLShape:
+			this.ctx.fillText("JShape:" + this.pieceCount[2], unit/2, unit*12);
+			// Square:
+			this.ctx.fillText("Square:" + this.pieceCount[3], unit/2, unit*13); 
+			// TShape:
+			this.ctx.fillText("TShape:" + this.pieceCount[4], unit/2, unit*14);
+			// SShape:
+			this.ctx.fillText("SShape:" + this.pieceCount[5], unit/2, unit*15);
+			// ZShape:
+			this.ctx.fillText("ZShape:" + this.pieceCount[6], unit/2, unit*16);
+		}
 }
 
 var GB1;
@@ -590,5 +671,8 @@ $(document).keydown(function(e) {
 $(document).ready(function() {
 	GB1 = new GameBoard(300);
 	SB1 = new ScoreBoard();
+	$('.wrap-game').css('height', GB1.canvas.height);
+	$('.wrap-game').css('width', 'auto');
+	//$('.wrap-game').css('width', GB1.canvas.width*1.5);
 	GB1.init();
 });

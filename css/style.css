@@ -1,3 +1,17 @@
 body {
-  background-color: black;
+  background-color: white;
+}
+
+.wrap-game {
+	border: solid black 1px;
+}
+
+#gb {
+
+}
+
+#wrap-score {
+	border-left: solid 3px black;
+	border-right: solid 1px black;
+	box-sizing: border-box;
 }
