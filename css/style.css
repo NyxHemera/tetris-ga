@@ -10,6 +10,6 @@ canvas {
 	border: solid black 1px;
 }
 
-#wrap-score {
+.scoreBoard {
 	border-left: solid 1px black;
 }

@@ -396,16 +396,13 @@ class GameBoard {
 		$('.wrap-game').append(this.canvas);
 
 		this.SB;
+		this.gameOver = false;
 
 		this.bw = cWidth / 10;
 		this.currentPiece;
 		this.nextPiece;
 		this.blockGrid = []; // Contains all existing blocks on the board except currentPiece
 		this.colorGrid = [];
-		for (var i = 0; i < this.canvas.height / this.bw; i++) {
-			this.blockGrid.push([]); // Creates rows in the blockGrid. Row index corresponds to y value.
-			this.colorGrid.push([]);
-		}
 
 		this.speed = 500; // Speed that blocks fall, smaller is faster
 		this.dGravTime = 0; // Time since last gravity update
@@ -414,6 +411,10 @@ class GameBoard {
 	}
 	// Initial Creation
 	init() {
+		for (var i = 0; i < this.canvas.height / this.bw; i++) {
+			this.blockGrid.push([]); // Creates rows in the blockGrid. Row index corresponds to y value.
+			this.colorGrid.push([]);
+		}
 		this.SB = new ScoreBoard(this);
 		this.currentPiece = this.getRandomPiece(); // Sets the current Piece being controlled
 		this.SB.updateCount();
@@ -431,12 +432,31 @@ class GameBoard {
 			this.dGravTime = 0;
 			var moveSucc = this.currentPiece.move(0, 1, false); // Update Gravity
 			if(!moveSucc[1]) {
-				this.SB.updateCount();
+				if(this.checkGameOver()) {
+					console.log("test");
+					clearInterval(this.gameLoop);
+					this.drawGameOver();
+					return;
+				}
+				this.SB.updateCount(); // Increments PieceCount in Scoreboard
 				this.grabNewPiece();
-				this.SB.drawScoreBoard();
+				this.SB.drawScoreBoard(); // Renders the ScoreBoard
 			}
 		}
 		this.render();
+	}
+
+	restart() {
+		this.gameOver = false;
+		this.blockGrid = [];
+		this.colorGrid = [];
+		this.speed = 500;
+		this.runTime = 0;
+		this.dGravTime = 0;
+
+		this.SB.removeSelf();
+
+		this.init();
 	}
 
 	// Rendering and Drawing Methods
@@ -465,11 +485,27 @@ class GameBoard {
 		this.ctx.strokeStyle = "white";
 		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
 	}
+	drawGameOver() {
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		// Next: 
+		this.ctx.fillText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.strokeText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.fillText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+	}
 
 	// Piece and Grid Handlers
 	addBlock(x, y) {
 		this.blockGrid[y].push(x);
 		this.colorGrid[y].push(this.currentPiece.color);
+	}
+	checkGameOver() {
+		this.gameOver = this.currentPiece.checkBlockClipping(this.currentPiece.blockPos);
+		return this.gameOver; // If clipping with anything, trigger game over
 	}
 	removeRow(rowIndex) {
 		this.blockGrid.splice(rowIndex, 1); // Removes row
@@ -546,18 +582,23 @@ class ScoreBoard {
 		this.nextPiece;
 		this.canvas;
 		this.ctx;
+		this.domEl;
 		this.buildScoreBoard();
 	}
 
 	buildScoreBoard() {
 		this.canvas = document.createElement('canvas');
 		this.ctx = this.canvas.getContext('2d');
-		this.canvas.id = "wrap-score";
 		this.canvas.width = this.GB.canvas.width/2;
 		this.canvas.height = this.GB.canvas.height;
-		$('.wrap-game').append(this.canvas);
-		var wrap = $('#wrap-score');
-		wrap.css('display', 'inline-block');
+		this.domEl = $(this.canvas);
+		this.domEl.addClass('scoreBoard');
+		$('.wrap-game').append(this.domEl);
+		this.domEl.css('display', 'inline-block');
+	}
+
+	removeSelf() {
+		this.domEl.remove();
 	}
 
 	logPiece(stageNum) {
@@ -694,6 +735,9 @@ $(document).keydown(function(e) {
 		// Down Key
 		case 40:
 			GB1.currentPiece.move(0, 1, false);
+			break;
+		case 32 :
+			GB1.gameOver ? GB1.restart() : "";
 			break;
 	}
 });
