@@ -445,7 +445,6 @@ class GameBoard {
 		}
 		this.render();
 	}
-
 	restart() {
 		this.gameOver = false;
 		this.blockGrid = [];
@@ -479,12 +478,31 @@ class GameBoard {
 	}
 	drawCell(x, y, color) {
 		var bw = this.bw;
-		// this.ctx.fillStyle = this.currentPiece.color;
+		/*if(this.SB.level > 0) {
+			console.log(color);
+			color = this.alterColor(color, (this.SB.level + 1) * -5);
+			console.log(color);
+		}*/
 		this.ctx.fillStyle = color;
 		this.ctx.fillRect(x * bw, y * bw, bw, bw);
 		this.ctx.strokeStyle = "white";
 		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
 	}
+	/*alterColor(color, percent) {
+		var hexNum = color.slice(1);
+		var rgb = [hexNum.slice(0,2), hexNum.slice(2,4), hexNum.slice(4,6)];
+		var hexString = "#";
+		for(var i=0; i<rgb.length; i++) {
+			rgb[i] = parseInt(rgb[i], 16);
+			rgb[i] += 255/100*percent;
+			rgb[i] = Math.floor(rgb[i]);
+			rgb[i] <= 0 ? rgb[i] = 0 : "";
+			rgb[i] < 10 ? rgb[i] = "0" + rgb[i] : "";
+			rgb[i] >= 255 ? rgb[i] = 255 : "";
+			hexString += rgb[i].toString(16);
+		}
+		return hexString;
+	}*/
 	drawGameOver() {
 		this.ctx.font = "bold 24px Arial";
 		this.ctx.fillStyle = "#FFFFFF";
@@ -520,9 +538,14 @@ class GameBoard {
 			if(blockGrid[i].length >= this.canvas.width / this.bw) {
 				this.removeRow(i);
 				numRemoved++;
+				(this.SB.lines+numRemoved)%10 == 0 && this.speed>=50 ? this.speedUp() : "";
 			}
 		}
 		this.SB.updateScore(numRemoved);
+	}
+	speedUp() {
+		this.speed -= 25;
+		this.SB.levelUp();
 	}
 	grabNewPiece() {
 		var currentPiece = this.currentPiece;
@@ -576,6 +599,7 @@ class ScoreBoard {
 		this.GB = gameBoard;
 		this.score = 0;
 		this.lines = 0;
+		this.level = 0;
 		this.bw = this.GB.bw;
 		this.stagedCount = 0;
 		this.pieceCount = [0,0,0,0,0,0,0];
@@ -623,6 +647,10 @@ class ScoreBoard {
 			this.nextPiece.blockPos[1] = 2.5;
 		}
 		this.nextPiece.updateBCD(this.nextPiece.blockPos[0], this.nextPiece.blockPos[1]);
+	}
+
+	levelUp() {
+		this.level++;
 	}
 
 	updateScore(numLines) {
@@ -687,6 +715,10 @@ class ScoreBoard {
 		// Score:
 		this.ctx.textAlign = 'left';
 		this.ctx.fillText("Score:" + this.score, unit/2, unit*6);
+
+		// Level:
+		this.ctx.textAlign = 'left';
+		this.ctx.fillText("Level:" + this.level, unit/2, unit*7);
 
 		// Lines:
 		this.ctx.fillText("Lines:" + this.lines, unit/2, unit*8);
