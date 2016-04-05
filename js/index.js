@@ -393,9 +393,9 @@ class GameBoard {
 		this.ctx = this.canvas.getContext("2d");
 		this.canvas.width = cWidth;
 		this.canvas.height = cWidth*1.8;
-		this.canvas.id = 'gb';
 		$('.wrap-game').append(this.canvas);
-		$('.gb').css('display', 'inline-block');
+
+		this.SB;
 
 		this.bw = cWidth / 10;
 		this.currentPiece;
@@ -414,10 +414,11 @@ class GameBoard {
 	}
 	// Initial Creation
 	init() {
+		this.SB = new ScoreBoard(this);
 		this.currentPiece = this.getRandomPiece(); // Sets the current Piece being controlled
-		SB1.updateCount();
-		SB1.drawScoreBoard();
+		this.SB.updateCount();
 		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
+		this.SB.drawScoreBoard();
 		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
 		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
 	}
@@ -430,9 +431,9 @@ class GameBoard {
 			this.dGravTime = 0;
 			var moveSucc = this.currentPiece.move(0, 1, false); // Update Gravity
 			if(!moveSucc[1]) {
-				SB1.updateCount();
+				this.SB.updateCount();
 				this.grabNewPiece();
-				SB1.drawScoreBoard();
+				this.SB.drawScoreBoard();
 			}
 		}
 		this.render();
@@ -485,7 +486,7 @@ class GameBoard {
 				numRemoved++;
 			}
 		}
-		SB1.updateScore(numRemoved);
+		this.SB.updateScore(numRemoved);
 	}
 	grabNewPiece() {
 		var currentPiece = this.currentPiece;
@@ -498,34 +499,34 @@ class GameBoard {
 	}
 	getRandomPiece() {
 		var rand = Math.floor(Math.random() * 100) % 7;
-		SB1.logPiece(rand);
+		this.SB.logPiece(rand);
 		switch (rand) {
 			case 0:
-				SB1.updateNextPiece(new Line(SB1));
+				this.SB.updateNextPiece(new Line(this.SB));
 				return new Line(this);
 				break;
 			case 1:
-				SB1.updateNextPiece(new LShape(SB1));
+				this.SB.updateNextPiece(new LShape(this.SB));
 				return new LShape(this);
 				break;
 			case 2:
-				SB1.updateNextPiece(new ReverseL(SB1));
+				this.SB.updateNextPiece(new ReverseL(this.SB));
 				return new ReverseL(this);
 				break;
 			case 3:
-				SB1.updateNextPiece(new Square(SB1));
+				this.SB.updateNextPiece(new Square(this.SB));
 				return new Square(this);
 				break;
 			case 4:
-				SB1.updateNextPiece(new TShape(SB1));
+				this.SB.updateNextPiece(new TShape(this.SB));
 				return new TShape(this);
 				break;
 			case 5:
-				SB1.updateNextPiece(new SShape(SB1));
+				this.SB.updateNextPiece(new SShape(this.SB));
 				return new SShape(this);
 				break;
 			case 6:
-				SB1.updateNextPiece(new ZShape(SB1));
+				this.SB.updateNextPiece(new ZShape(this.SB));
 				return new ZShape(this);
 				break;
 			default:
@@ -535,10 +536,11 @@ class GameBoard {
 }
 
 class ScoreBoard {
-	constructor() {
+	constructor(gameBoard) {
+		this.GB = gameBoard;
 		this.score = 0;
 		this.lines = 0;
-		this.bw = GB1.bw;
+		this.bw = this.GB.bw;
 		this.stagedCount = 0;
 		this.pieceCount = [0,0,0,0,0,0,0];
 		this.nextPiece;
@@ -551,8 +553,8 @@ class ScoreBoard {
 		this.canvas = document.createElement('canvas');
 		this.ctx = this.canvas.getContext('2d');
 		this.canvas.id = "wrap-score";
-		this.canvas.width = GB1.canvas.width/2;
-		this.canvas.height = GB1.canvas.height;
+		this.canvas.width = this.GB.canvas.width/2;
+		this.canvas.height = this.GB.canvas.height;
 		$('.wrap-game').append(this.canvas);
 		var wrap = $('#wrap-score');
 		wrap.css('display', 'inline-block');
@@ -604,7 +606,6 @@ class ScoreBoard {
 				console.log("Invalid numLines recieved: " + numLines);
 				break;
 		}
-		console.log(this.score);
 	}
 
 	drawScoreBoard() {
@@ -626,7 +627,6 @@ class ScoreBoard {
 
 	drawCell(x, y, color) {
 		var bw = this.bw;
-		// this.ctx.fillStyle = this.currentPiece.color;
 		this.ctx.fillStyle = color;
 		this.ctx.fillRect(x * bw, y * bw, bw, bw);
 		this.ctx.strokeStyle = "white";
@@ -634,7 +634,7 @@ class ScoreBoard {
 	}
 
 	drawTexts() {
-		var unit = GB1.bw;
+		var unit = this.bw;
 		// Initial font setup
 		this.ctx.font = "10px Arial";
 		this.ctx.fillStyle = "#000000";
@@ -669,7 +669,6 @@ class ScoreBoard {
 }
 
 var GB1;
-var SB1;
 
 $(document).keydown(function(e) {
 	switch (e.keyCode) {
@@ -700,10 +699,9 @@ $(document).keydown(function(e) {
 });
 
 $(document).ready(function() {
-	GB1 = new GameBoard(300);
-	SB1 = new ScoreBoard();
+	var width = 300;
+	GB1 = new GameBoard(width);
 	$('.wrap-game').css('height', GB1.canvas.height);
-	$('.wrap-game').css('width', 'auto');
-	//$('.wrap-game').css('width', GB1.canvas.width*1.5);
+	$('.wrap-game').css('width', width*1.5 + 1);
 	GB1.init();
 });
