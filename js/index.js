@@ -786,59 +786,109 @@ class MusicHandler {
 	}
 }
 
+class SplashScreen {
+	constructor() {
+
+	}
+
+}
+
 class GameStateHandler {
 	constructor() {
-		this.GBArr = [new GameBoard, new GameBoard, new GameBoard]; // GB1, GB2, GBC
+		this.GBArr = [];
+		this.MH;
+		this.width = 300;
+		// SplashScreen : 0
+		// Menu : 1
+		// Single Player : 2
+		// Multiplayer : 3
+		// Computer : 4
+		this.currentState = 2;
+		this.loadStateObjects();
+	}
+
+	loadStateObjects() {
+		switch(this.currentState) {
+			case 0 :
+				break;
+			case 1 :
+				break;
+			case 2 :
+				this.GBArr.push(new GameBoard(this.width));
+				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
+				$('.wrap-game').css('width', this.width*1.5 + 1);
+				this.GBArr[0].init();
+
+				this.MH = new MusicHandler();
+				this.MH.typeA.play();
+				break;
+			case 3 :
+				break;
+			case 4 :
+				break;
+		}
+	}
+
+	setState(num) {
+		this.currentState = num;
+	}
+
+	handleKeyPress(e) {
+		switch(this.currentState) {
+			case 0 :
+				break;
+			case 1 :
+				break;
+			case 2 :
+				switch (e.keyCode) {
+					// X Key
+					case 88:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPiece.rotate(true) : "";
+						break;
+					// Z Key
+					case 90:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPiece.rotate(false) : "";
+						break;
+					// Left Key
+					case 37:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPiece.move(-1, 0, false) : "";
+						break;
+					// Up Key
+					case 38:
+						break;
+					// Right Key
+					case 39:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPiece.move(1, 0, false) : "";
+						break;
+					// Down Key
+					case 40:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPiece.move(0, 1, false) : "";
+						break;
+					// Space Key
+					case 32 :
+						this.GBArr[0].paused ? this.GBArr[0].start() : "";
+						this.GBArr[0].gameOver ? this.GBArr[0].restart() : "";
+						break;
+					// Esc Key
+					case 27 :
+						this.GBArr[0].pause();
+						break;
+				}
+				break;
+			case 3 :
+				break;
+			case 4 :
+				break;
+		}
 	}
 }
 
-var GB1;
-var MH;
+var GSH;
 
 $(document).keydown(function(e) {
-	switch (e.keyCode) {
-		// X Key
-		case 88:
-			!GB1.paused ? GB1.currentPiece.rotate(true) : "";
-			break;
-		// Z Key
-		case 90:
-			!GB1.paused ? GB1.currentPiece.rotate(false) : "";
-			break;
-		// Left Key
-		case 37:
-			!GB1.paused ? GB1.currentPiece.move(-1, 0, false) : "";
-			break;
-		// Up Key
-		case 38:
-			break;
-		// Right Key
-		case 39:
-			!GB1.paused ? GB1.currentPiece.move(1, 0, false) : "";
-			break;
-		// Down Key
-		case 40:
-			!GB1.paused ? GB1.currentPiece.move(0, 1, false) : "";
-			break;
-		// Space Key
-		case 32 :
-			GB1.paused ? GB1.start() : "";
-			GB1.gameOver ? GB1.restart() : "";
-			break;
-		// Esc Key
-		case 27 :
-			GB1.pause();
-			break;
-	}
+	GSH.handleKeyPress(e);
 });
 
 $(document).ready(function() {
-	var width = 300;
-	GB1 = new GameBoard(width);
-	MH = new MusicHandler();
-	$('.wrap-game').css('height', GB1.canvas.height);
-	$('.wrap-game').css('width', width*1.5 + 1);
-	//MH.theme.play();
-	MH.typeA.play();
-	GB1.init();
+	GSH = new GameStateHandler();
 });
