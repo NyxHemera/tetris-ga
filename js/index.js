@@ -421,6 +421,16 @@ class GameBoard {
 		this.SB.updateCount();
 		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
 		this.SB.drawScoreBoard();
+
+		// Draw Start Text
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		
+		this.ctx.fillText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
 	}
 
 	start() {
@@ -471,6 +481,7 @@ class GameBoard {
 		this.gameOver = false;
 		this.blockGrid = [];
 		this.colorGrid = [];
+		this.paused = true;
 		this.speed = 500;
 		this.runTime = 0;
 		this.dGravTime = 0;
@@ -478,6 +489,7 @@ class GameBoard {
 		this.SB.removeSelf();
 
 		this.init();
+		this.start();
 	}
 
 	// Rendering and Drawing Methods
