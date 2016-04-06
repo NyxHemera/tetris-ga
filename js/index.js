@@ -171,7 +171,7 @@ class Line extends Piece {
 		this.currentRotation = 0;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
-		this.color = "#F4B523";
+		this.color = "#D2015C";
 	}
 	toString() {
 		return "Line";
@@ -338,7 +338,7 @@ class Square extends Piece {
 		this.currentRotation = 0;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
-		this.color = "#1A1A1A";
+		this.color = "#32AD87";
 	}
 	rotate() {
 		console.log("Squares don't rotate...");
@@ -379,7 +379,7 @@ class ZShape extends Piece {
 		this.currentRotation = 3;
 		//update the rest of the squares
 		this.updateBCD(this.blockPos[0], this.blockPos[1]);
-		this.color = "#FFC174";
+		this.color = "#6236F2";
 	}
 	toString() {
 		return "Z-Shape";
@@ -461,7 +461,7 @@ class GameBoard {
 	// Rendering and Drawing Methods
 	render() {
 		// Background
-		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.fillStyle = "#E5E5E5";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		// Current Piece
 		this.currentPiece.render();
@@ -638,13 +638,13 @@ class ScoreBoard {
 		var name = this.nextPiece.toString();
 		if(name === "Square") {
 			this.nextPiece.blockPos[0] = 1.5;
-			this.nextPiece.blockPos[1] = 2.5;
+			this.nextPiece.blockPos[1] = 2.2;
 		}else if(name === "Line") {
 			this.nextPiece.blockPos[0] = 2.5;
-			this.nextPiece.blockPos[1] = 3;
+			this.nextPiece.blockPos[1] = 2.7;
 		}else {
 			this.nextPiece.blockPos[0] = 2;
-			this.nextPiece.blockPos[1] = 2.5;
+			this.nextPiece.blockPos[1] = 2.2;
 		}
 		this.nextPiece.updateBCD(this.nextPiece.blockPos[0], this.nextPiece.blockPos[1]);
 	}
@@ -679,7 +679,7 @@ class ScoreBoard {
 
 	drawScoreBoard() {
 		// Background
-		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.fillStyle = "#404040";
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 		// Draw Permanent Text
 		this.drawTexts();
@@ -690,8 +690,10 @@ class ScoreBoard {
 	}
 
 	drawBox() {
-		this.ctx.strokeStyle = "black";
-		this.ctx.strokeRect(0, 2*this.bw, 5*this.bw, 3*this.bw);
+		this.ctx.strokeStyle = "#DCDCDC";
+		this.ctx.strokeRect(0, 1.7*this.bw, 5*this.bw, 3*this.bw);
+		this.ctx.fillStyle = "#E5E5E5";
+		this.ctx.fillRect(0, 1.7*this.bw, 5*this.bw, 3*this.bw);
 	}
 
 	drawCell(x, y, color) {
@@ -705,8 +707,8 @@ class ScoreBoard {
 	drawTexts() {
 		var unit = this.bw;
 		// Initial font setup
-		this.ctx.font = "10px Arial";
-		this.ctx.fillStyle = "#000000";
+		this.ctx.font = "16px Nunito, sans-serif";
+		this.ctx.fillStyle = "#DCDCDC";
 		this.ctx.textAlign = 'center';
 		// Next: 
 		this.ctx.fillText("Next: ", this.canvas.width/2, unit);
@@ -741,7 +743,17 @@ class ScoreBoard {
 	}
 }
 
+class MusicHandler {
+	constructor() {
+		this.theme = new Audio('media/Original_Theme.mp3');
+		this.theme.loop = true;
+		this.typeA = new Audio('media/typeA.mp3');
+		this.typeA.loop = true;
+	}
+}
+
 var GB1;
+var MH;
 
 $(document).keydown(function(e) {
 	switch (e.keyCode) {
@@ -777,7 +789,10 @@ $(document).keydown(function(e) {
 $(document).ready(function() {
 	var width = 300;
 	GB1 = new GameBoard(width);
+	MH = new MusicHandler();
 	$('.wrap-game').css('height', GB1.canvas.height);
 	$('.wrap-game').css('width', width*1.5 + 1);
+	//MH.theme.play();
+	MH.typeA.play();
 	GB1.init();
 });
