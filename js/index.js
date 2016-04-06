@@ -455,6 +455,8 @@ class GameBoard {
 		this.ctx.strokeText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
 		this.ctx.fillText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
 		this.ctx.strokeText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.fillText("Press Esc to Quit", this.canvas.width/2, this.canvas.height/2 + this.bw);
+		this.ctx.strokeText("Press Esc to Quit", this.canvas.width/2, this.canvas.height/2 + this.bw);
 	}
 	kill() {
 		clearInterval(this.gameLoop); // Stop Updating
@@ -633,6 +635,259 @@ class GameBoard {
 		}
 	}
 }
+class MultiGameBoard {
+	constructor(cWidth) {
+		// Create Canvas
+		this.canvas = document.createElement("canvas");;
+		this.ctx = this.canvas.getContext("2d");
+		this.canvas.width = cWidth*2;
+		this.canvas.height = cWidth*1.8;
+		$('.wrap-game').append(this.canvas);
+		this.domEl = $(this.canvas);
+
+		this.SB;
+		this.gameOver = false;
+		this.paused = true;
+
+		this.bw = cWidth / 10;
+		this.currentPieces = [];
+		this.nextPiece;
+		this.blockGrid = []; // Contains all existing blocks on the board except currentPiece
+		this.colorGrid = [];
+
+		this.speed = 500; // Speed that blocks fall, smaller is faster
+		this.dGravTime = 0; // Time since last gravity update
+		this.loopSpeed = 16.66; // Runs update every loopSpeed ms
+		this.runTime = 0; // Total runTime
+	}
+	// Initial Creation
+	init() {
+		for (var i = 0; i < this.canvas.height / this.bw; i++) {
+			this.blockGrid.push([]); // Creates rows in the blockGrid. Row index corresponds to y value.
+			this.colorGrid.push([]);
+		}
+		this.SB = new ScoreBoard(this);
+		this.currentPieces.push(this.getRandomPiece()); // Sets the current Piece being controlled by P1
+		this.placeNewPieces(0);
+		this.currentPieces.push(this.getRandomPiece()); // Sets the current Piece being controlled by P2
+		this.placeNewPieces(1);
+		this.SB.updateCount();
+		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
+		this.SB.drawScoreBoard();
+
+		// Draw Start Text
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		
+		this.ctx.fillText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+	}
+
+	// Time Handlers
+	start() {
+		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
+		this.paused = false;
+		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
+	}
+	pause() {
+		this.paused = true;
+		clearInterval(this.gameLoop);
+
+		// Draw Pause Text
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		
+		this.ctx.fillText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.strokeText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.fillText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.fillText("Press Esc to Quit", this.canvas.width/2, this.canvas.height/2 + this.bw);
+		this.ctx.strokeText("Press Esc to Quit", this.canvas.width/2, this.canvas.height/2 + this.bw);
+	}
+	kill() {
+		clearInterval(this.gameLoop); // Stop Updating
+		this.SB.removeSelf(); // Remove ScoreBoard
+		this.domEl.remove(); // Remove GameBoard
+	}
+
+	// Update call every loopSpeed ms
+	update() {
+		this.runTime += this.loopSpeed;
+		this.dGravTime += this.loopSpeed;
+		if (this.dGravTime >= this.speed) { // Check if we should update Gravity
+			this.dGravTime = 0;
+			var moveSucc0 = this.currentPieces[0].move(0, 1, false); // Update Gravity
+			var moveSucc1 = this.currentPieces[1].move(0, 1, false); // Update Gravity
+			if(!moveSucc0[1]) { // If gravity isn't successful
+				if(this.checkGameOver(0)) {
+					clearInterval(this.gameLoop);
+					this.drawGameOver();
+					return;
+				}
+				this.SB.updateCount(); // Increments PieceCount in Scoreboard
+				this.grabNewPiece(0);
+				this.SB.drawScoreBoard(); // Renders the ScoreBoard
+			}
+			if(!moveSucc1[1]) { // If gravity isn't successful
+				if(this.checkGameOver(1)) {
+					clearInterval(this.gameLoop);
+					this.drawGameOver();
+					return;
+				}
+				this.SB.updateCount(); // Increments PieceCount in Scoreboard
+				this.grabNewPiece(1);
+				this.SB.drawScoreBoard(); // Renders the ScoreBoard
+			}
+		}
+		this.render();
+	}
+	restart() {
+		this.gameOver = false;
+		this.blockGrid = [];
+		this.colorGrid = [];
+		this.paused = true;
+		this.speed = 500;
+		this.runTime = 0;
+		this.dGravTime = 0;
+
+		this.SB.removeSelf();
+
+		this.init();
+		this.start();
+	}
+
+	// Rendering and Drawing Methods
+	render() {
+		// Background
+		this.ctx.fillStyle = "#E5E5E5";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		// Current Piece
+		this.currentPieces[0].render();
+		this.currentPieces[1].render();
+		// Old Pieces
+		this.renderBlocks();
+	}
+	renderBlocks() {
+		var blockGrid = this.blockGrid;
+		for (var i = 0; i < blockGrid.length; i++) {
+			for (var j = 0; j < blockGrid[i].length; j++) {
+				this.drawCell(blockGrid[i][j], i, this.colorGrid[i][j]);
+			}
+		}
+	}
+	drawCell(x, y, color) {
+		var bw = this.bw;
+		this.ctx.fillStyle = color;
+		this.ctx.fillRect(x * bw, y * bw, bw, bw);
+		this.ctx.strokeStyle = "white";
+		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
+	}
+	drawGameOver() {
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		 
+		this.ctx.fillText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.strokeText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.fillText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
+	}
+
+	// Piece and Grid Handlers
+	addBlock(x, y, num) {
+		this.blockGrid[y].push(x);
+		this.colorGrid[y].push(this.currentPieces[num].color);
+	}
+	checkGameOver(num) {
+		this.gameOver = this.currentPieces[num].checkBlockClipping(this.currentPieces[num].blockPos);
+		return this.gameOver; // If clipping with anything, trigger game over
+	}
+	removeRow(rowIndex) {
+		this.blockGrid.splice(rowIndex, 1); // Removes row
+		this.blockGrid.unshift([]); // Adds new row to the top
+		this.colorGrid.splice(rowIndex, 1);
+		this.colorGrid.unshift([]);
+	}
+	checkRows() {
+		var blockGrid = this.blockGrid;
+		var numRemoved = 0;
+		for (var i = 0; i < blockGrid.length; i++) {
+			if(blockGrid[i].length >= this.canvas.width / this.bw) {
+				this.removeRow(i);
+				numRemoved++;
+				(this.SB.lines+numRemoved)%10 == 0 && this.speed>=50 ? this.speedUp() : "";
+			}
+		}
+		this.SB.updateScore(numRemoved);
+	}
+	speedUp() {
+		this.speed -= 25;
+		this.SB.levelUp();
+	}
+	grabNewPiece(num) {
+		var currentPiece = this.currentPieces[num];
+		for (var i = 0; i < currentPiece.blockPos.length; i++) {
+			this.addBlock(currentPiece.blockPos[i], currentPiece.blockPos[++i], num); // Add Blocks to Grid
+		}
+		this.checkRows(); // Check for complete Rows
+		this.currentPieces[num] = this.nextPiece; // Switch to the next piece
+		this.placeNewPieces(num);
+		this.nextPiece = this.getRandomPiece();
+	}
+	placeNewPieces(num) {
+		if(num == 0) {
+			this.currentPieces[num].blockPos[0] -= this.canvas.width/this.bw/4; // Move over one quarter screen left
+			this.currentPieces[num].updateBCD(this.currentPieces[num].blockPos[0], this.currentPieces[num].blockPos[1]);
+		}else {
+			this.currentPieces[num].blockPos[0] += this.canvas.width/this.bw/4; // Move over one quarter screen right
+			this.currentPieces[num].updateBCD(this.currentPieces[num].blockPos[0], this.currentPieces[num].blockPos[1]);
+		}
+	}
+	getRandomPiece() {
+		var rand = Math.floor(Math.random() * 100) % 7;
+		this.SB.logPiece(rand);
+		switch (rand) {
+			case 0:
+				this.SB.updateNextPiece(new Line(this.SB));
+				return new Line(this);
+				break;
+			case 1:
+				this.SB.updateNextPiece(new LShape(this.SB));
+				return new LShape(this);
+				break;
+			case 2:
+				this.SB.updateNextPiece(new ReverseL(this.SB));
+				return new ReverseL(this);
+				break;
+			case 3:
+				this.SB.updateNextPiece(new Square(this.SB));
+				return new Square(this);
+				break;
+			case 4:
+				this.SB.updateNextPiece(new TShape(this.SB));
+				return new TShape(this);
+				break;
+			case 5:
+				this.SB.updateNextPiece(new SShape(this.SB));
+				return new SShape(this);
+				break;
+			case 6:
+				this.SB.updateNextPiece(new ZShape(this.SB));
+				return new ZShape(this);
+				break;
+			default:
+				console.log("Error getting piece");
+		}
+	}
+}
 class ScoreBoard {
 	constructor(gameBoard) {
 		this.GB = gameBoard;
@@ -652,7 +907,7 @@ class ScoreBoard {
 	buildScoreBoard() {
 		this.canvas = document.createElement('canvas');
 		this.ctx = this.canvas.getContext('2d');
-		this.canvas.width = this.GB.canvas.width/2;
+		this.canvas.width = this.GB.canvas.height/1.8/2;
 		this.canvas.height = this.GB.canvas.height;
 		this.domEl = $(this.canvas);
 		this.domEl.addClass('scoreBoard');
@@ -1037,8 +1292,8 @@ class MainMenuScreen {
 		this.ctx.lineWidth = 1;
 		this.ctx.fillText("1: Single-Player", this.canvas.width/2, this.canvas.height/3 * 2 - this.bw);
 		this.ctx.strokeText("1: Single-Player", this.canvas.width/2, this.canvas.height/3 * 2 - this.bw);
-		this.ctx.fillText("2: VS", this.canvas.width/2, this.canvas.height/3 * 2);
-		this.ctx.strokeText("2: VS", this.canvas.width/2, this.canvas.height/3 * 2);
+		this.ctx.fillText("2: Co-op", this.canvas.width/2, this.canvas.height/3 * 2);
+		this.ctx.strokeText("2: Co-op", this.canvas.width/2, this.canvas.height/3 * 2);
 		this.ctx.fillText("3: Computer", this.canvas.width/2, this.canvas.height/3 * 2 + this.bw);
 		this.ctx.strokeText("3: Computer", this.canvas.width/2, this.canvas.height/3 * 2 + this.bw);
 	}
@@ -1147,7 +1402,7 @@ class GameStateHandler {
 
 	loadStateObjects() {
 		switch(this.currentState) {
-			case 0 :
+			case 0 : // SplashScreen
 				this.GBArr.push(new SplashScreen(this.width*2.5));
 				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
 				$('.wrap-game').css('width', this.width*2.5);
@@ -1156,25 +1411,39 @@ class GameStateHandler {
 				this.MH.theme.play();
 				this.MH.currentPlaying = this.MH.theme;
 				break;
-			case 1 :
+			case 1 : // Main Menu
 				this.GBArr.push(new MainMenuScreen(this.width*2.5));
 				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
 				$('.wrap-game').css('width', this.width*2.5);
 				this.GBArr[0].init();
 				break;
-			case 2 :
+			case 2 : // Single Player
 				this.GBArr.push(new GameBoard(this.width));
 				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
 				$('.wrap-game').css('width', this.width*1.5 + 1);
 				this.GBArr[0].init();
-				this.MH.currentPlaying.pause();
-				this.MH.currentPlaying.currentTime = 0;
-				this.MH.typeA.play();
-				this.MH.currentPlaying = this.MH.typeA;
+
+				if(this.MH.currentPlaying != this.MH.typeA) {
+					this.MH.currentPlaying.pause();
+					this.MH.currentPlaying.currentTime = 0;
+					this.MH.typeA.play();
+					this.MH.currentPlaying = this.MH.typeA;
+				}
 				break;
-			case 3 :
+			case 3 : // Multiplayer
+				this.GBArr.push(new MultiGameBoard(this.width));
+				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
+				$('.wrap-game').css('width', this.width*2.5 + 1);
+				this.GBArr[0].init();
+
+				if(this.MH.currentPlaying != this.MH.typeA) {
+					this.MH.currentPlaying.pause();
+					this.MH.currentPlaying.currentTime = 0;
+					this.MH.typeA.play();
+					this.MH.currentPlaying = this.MH.typeA;
+				}
 				break;
-			case 4 :
+			case 4 : // Computer
 				break;
 		}
 	}
@@ -1191,7 +1460,6 @@ class GameStateHandler {
 			this.GBArr[i].kill();
 		}
 		this.GBArr = [];
-
 	}
 
 	handleKeyPress(e) {
@@ -1211,7 +1479,7 @@ class GameStateHandler {
 						this.setState(2);
 						break;
 					case 50 :
-						//this.setState(3);
+						this.setState(3);
 						break;
 					case 51 :
 						//this.setState(4);
@@ -1250,13 +1518,72 @@ class GameStateHandler {
 						break;
 					// Esc Key
 					case 27 :
-						this.GBArr[0].pause();
+						this.GBArr[0].paused ? this.setState(1) : this.GBArr[0].pause(); // If already paused, switch to MainMenu
 						break;
 				}
 				break;
-			case 3 :
+			case 3 : // Multiplayer
+				switch (e.keyCode) {
+					// Left Player
+
+					// E Key
+					case 69:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[0].rotate(true) : "";
+						break;
+					// Q Key
+					case 81:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[0].rotate(false) : "";
+						break;
+					// A Key
+					case 65:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[0].move(-1, 0, false) : "";
+						break;
+					// D Key
+					case 68:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[0].move(1, 0, false) : "";
+						break;
+					// S Key
+					case 83:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[0].move(0, 1, false) : "";
+						break;
+
+					// Right Player
+
+					// / Key
+					case 191:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[1].rotate(true) : "";
+						break;
+					// . Key
+					case 190:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[1].rotate(false) : "";
+						break;
+					// Left Key
+					case 37:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[1].move(-1, 0, false) : "";
+						break;
+					// Right Key
+					case 39:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[1].move(1, 0, false) : "";
+						break;
+					// Down Key
+					case 40:
+						!this.GBArr[0].paused ? this.GBArr[0].currentPieces[1].move(0, 1, false) : "";
+						break;
+
+					// Both Players
+
+					// Space Key
+					case 32 :
+						this.GBArr[0].paused ? this.GBArr[0].start() : "";
+						this.GBArr[0].gameOver ? this.GBArr[0].restart() : "";
+						break;
+					// Esc Key
+					case 27 :
+						this.GBArr[0].paused ? this.setState(1) : this.GBArr[0].pause(); // If already paused, switch to MainMenu
+						break;
+				}
 				break;
-			case 4 :
+			case 4 : // Computer
 				break;
 		}
 	}
