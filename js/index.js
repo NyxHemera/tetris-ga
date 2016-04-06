@@ -781,6 +781,173 @@ class ScoreBoard {
 		this.ctx.fillText("ZShape:" + this.pieceCount[6], unit/2, unit*16);
 	}
 }
+class SplashScreen {
+	constructor(cWidth) {
+		// Create Canvas
+		this.canvas = document.createElement("canvas");;
+		this.ctx = this.canvas.getContext("2d");
+		this.canvas.width = cWidth;
+		this.canvas.height = cWidth/2.5*1.8;
+		$('.wrap-game').append(this.canvas);
+		this.domEl = $(this.canvas);
+
+		this.bw = cWidth / 10 / 2.5;
+		this.pieceArr = [];
+		this.removeArr = [];
+
+		this.speed = 200; // Speed that blocks fall, smaller is faster
+		this.loadSpeed = 400; // Speed that pieces load
+		this.dLoadTime = 0; // Time since last pieceLoad
+		this.dGravTime = 0; // Time since last gravity update
+		this.loopSpeed = 16.66; // Runs update every loopSpeed ms
+		this.runTime = 0; // Total runTime
+	}
+	// Initial Creation
+	init() {
+		this.start();
+	}
+
+	// Time Handlers
+	start() {
+		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
+		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
+	}
+	kill() {
+		clearInterval(this.gameLoop); // Stop Updating
+		this.domEl.remove(); // Remove GameBoard
+	}
+
+	// Update call every loopSpeed ms
+	update() {
+		this.runTime += this.loopSpeed;
+		this.dGravTime += this.loopSpeed;
+		this.dLoadTime += this.loopSpeed;
+		if(this.dGravTime >= this.speed) { // Check if we should update Gravity
+			this.dGravTime = 0;
+			this.movePieces(); // Update Gravity
+		}
+		if(this.dLoadTime >= this.loadSpeed) { // Check if we should load new Pieces
+			this.dLoadTime = 0;
+			this.loadNewPiece();
+		}
+		this.checkOutOfBounds();
+		this.render();
+	}
+
+	// Rendering and Drawing Methods
+	render() {
+		// Background
+		this.ctx.fillStyle = "#E5E5E5";
+		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		// Falling Blocks
+		this.renderBlocks();
+		// Title
+		this.drawTitle();
+	}
+	renderBlocks() {
+		for(var i=0; i<this.pieceArr.length; i++) {
+			this.pieceArr[i].render();
+		}
+	}
+	drawCell(x, y, color) {
+		var bw = this.bw;
+		this.ctx.fillStyle = color;
+		this.ctx.fillRect(x * bw, y * bw, bw, bw);
+		this.ctx.strokeStyle = "white";
+		this.ctx.strokeRect(x * bw, y * bw, bw, bw);
+	}
+	drawTitle() {
+		this.ctx.font = "bold 80px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 3;
+		this.ctx.textAlign = 'center';
+		 
+		this.ctx.fillText("Tetris", this.canvas.width/2, this.canvas.height/2 - this.bw/2);
+		this.ctx.strokeText("Tetris", this.canvas.width/2, this.canvas.height/2 - this.bw/2);
+		this.ctx.font = "bold 30px Arial";
+		this.ctx.lineWidth = 1;
+		this.ctx.fillText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2 + this.bw/2);
+		this.ctx.strokeText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2 + this.bw/2);
+	}
+
+	// Piece Handling Methods
+	checkOutOfBounds() {
+		for(var i=0; i<this.pieceArr.length; i++) {
+			for(var j=0; j<this.pieceArr[i].blockPos.length; j++) {
+				if(this.pieceArr[i].blockPos[++j] > this.canvas.height/this.bw + 5) {
+					console.log("splicedd");
+					this.pieceArr.splice(i,1);
+				}
+			}
+		}
+	}
+	removePieces() {
+		for(var i=0; i<removeArr.length; i++) {
+
+		}
+	}
+	movePieces() {
+		for(var i=0; i<this.pieceArr.length; i++) {
+			this.pieceArr[i].move(0,1,true);
+		}
+	}
+	loadNewPiece() {
+		this.pieceArr.push(this.getRandomPiece());
+	}
+	getRandomPiece() {
+		var rand = Math.floor(Math.random() * 100) % 7;
+		var randX = Math.floor(Math.random() * 100) % (this.canvas.width/this.bw - 1);
+		randX <= 0 ? randX += 2 : "";
+		var piece;
+		switch (rand) {
+			case 0:
+				piece = new Line(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 1:
+				piece = new LShape(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 2:
+				piece = new ReverseL(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 3:
+				piece = new Square(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 4:
+				piece = new TShape(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 5:
+				piece = new SShape(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			case 6:
+				piece = new ZShape(this);
+				piece.blockPos[0] = randX;
+				piece.updateBCD(piece.blockPos[0], piece.blockPos[1]);
+				return piece;
+				break;
+			default:
+				console.log("Error getting piece");
+		}
+	}
+}
 
 class MusicHandler {
 	constructor() {
@@ -790,38 +957,27 @@ class MusicHandler {
 		this.typeA.loop = true;
 	}
 }
-
-class SplashScreen {
-	constructor() {
-
-	}
-
-	kill() {
-
-	}
-
-}
-
 class GameStateHandler {
 	constructor() {
 		this.GBArr = [];
-		this.MH;
+		this.MH = new MusicHandler();
 		this.width = 300;
 		// SplashScreen : 0
 		// Menu : 1
 		// Single Player : 2
 		// Multiplayer : 3
 		// Computer : 4
-		this.currentState = 2;
+		this.currentState = 0;
 		this.loadStateObjects();
 	}
 
 	loadStateObjects() {
 		switch(this.currentState) {
 			case 0 :
-				this.GBArr.push(new SplashScreen());
+				this.GBArr.push(new SplashScreen(this.width*2.5));
 				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
-				$('.wrap-game').css('width', this.width*1.5 + 1);
+				$('.wrap-game').css('width', this.width*2.5);
+				this.GBArr[0].init();
 				break;
 			case 1 :
 				break;
@@ -831,7 +987,6 @@ class GameStateHandler {
 				$('.wrap-game').css('width', this.width*1.5 + 1);
 				this.GBArr[0].init();
 
-				this.MH = new MusicHandler();
 				this.MH.typeA.play();
 				break;
 			case 3 :
@@ -844,10 +999,11 @@ class GameStateHandler {
 	setState(num) {
 		this.currentState = num;
 		this.killGBArr();
+		this.loadStateObjects();
 	}
 
 	killGBArr() {
-		for(var i=0; i<this.GBArr; i++) {
+		for(var i=0; i<this.GBArr.length; i++) {
 			this.GBArr[i].kill();
 		}
 		this.GBArr = [];
@@ -855,11 +1011,17 @@ class GameStateHandler {
 
 	handleKeyPress(e) {
 		switch(this.currentState) {
-			case 0 :
+			case 0 : // SplashScreen
+				switch (e.keyCode) {
+					// Space Key
+					case 32 :
+						this.setState(2);
+						break;
+				}
 				break;
 			case 1 :
 				break;
-			case 2 :
+			case 2 : // Single Player
 				switch (e.keyCode) {
 					// X Key
 					case 88:
