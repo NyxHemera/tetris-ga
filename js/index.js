@@ -397,6 +397,7 @@ class GameBoard {
 
 		this.SB;
 		this.gameOver = false;
+		this.paused = true;
 
 		this.bw = cWidth / 10;
 		this.currentPiece;
@@ -420,8 +421,29 @@ class GameBoard {
 		this.SB.updateCount();
 		this.nextPiece = this.getRandomPiece(); // Sets the next Piece to drop
 		this.SB.drawScoreBoard();
+	}
+
+	start() {
 		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
+		this.paused = false;
 		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
+	}
+
+	pause() {
+		this.paused = true;
+		clearInterval(this.gameLoop);
+
+		// Draw Pause Text
+		this.ctx.font = "bold 24px Arial";
+		this.ctx.fillStyle = "#FFFFFF";
+		this.ctx.strokeStyle = "#000000";
+		this.ctx.lineWidth = 1;
+		this.ctx.textAlign = 'center';
+		
+		this.ctx.fillText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.strokeText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
+		this.ctx.fillText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
+		this.ctx.strokeText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
 	}
 
 	// Update call every loopSpeed ms
@@ -509,7 +531,7 @@ class GameBoard {
 		this.ctx.strokeStyle = "#000000";
 		this.ctx.lineWidth = 1;
 		this.ctx.textAlign = 'center';
-		// Next: 
+		 
 		this.ctx.fillText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
 		this.ctx.strokeText("Game Over", this.canvas.width/2, this.canvas.height/2 - this.bw);
 		this.ctx.fillText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
@@ -752,6 +774,12 @@ class MusicHandler {
 	}
 }
 
+class GameStateHandler {
+	constructor() {
+		this.GBArr = [new GameBoard, new GameBoard, new GameBoard]; // GB1, GB2, GBC
+	}
+}
+
 var GB1;
 var MH;
 
@@ -759,29 +787,35 @@ $(document).keydown(function(e) {
 	switch (e.keyCode) {
 		// X Key
 		case 88:
-			GB1.currentPiece.rotate(true);
+			!GB1.paused ? GB1.currentPiece.rotate(true) : "";
 			break;
 		// Z Key
 		case 90:
-			GB1.currentPiece.rotate(false);
+			!GB1.paused ? GB1.currentPiece.rotate(false) : "";
 			break;
 		// Left Key
 		case 37:
-			GB1.currentPiece.move(-1, 0, false);
+			!GB1.paused ? GB1.currentPiece.move(-1, 0, false) : "";
 			break;
 		// Up Key
 		case 38:
 			break;
 		// Right Key
 		case 39:
-			GB1.currentPiece.move(1, 0, false);
+			!GB1.paused ? GB1.currentPiece.move(1, 0, false) : "";
 			break;
 		// Down Key
 		case 40:
-			GB1.currentPiece.move(0, 1, false);
+			!GB1.paused ? GB1.currentPiece.move(0, 1, false) : "";
 			break;
+		// Space Key
 		case 32 :
+			GB1.paused ? GB1.start() : "";
 			GB1.gameOver ? GB1.restart() : "";
+			break;
+		// Esc Key
+		case 27 :
+			GB1.pause();
 			break;
 	}
 });
