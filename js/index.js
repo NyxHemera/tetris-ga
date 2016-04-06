@@ -394,6 +394,7 @@ class GameBoard {
 		this.canvas.width = cWidth;
 		this.canvas.height = cWidth*1.8;
 		$('.wrap-game').append(this.canvas);
+		this.domEl = $(this.canvas);
 
 		this.SB;
 		this.gameOver = false;
@@ -433,12 +434,12 @@ class GameBoard {
 		this.ctx.strokeText("Press Space to Play", this.canvas.width/2, this.canvas.height/2);
 	}
 
+	// Time Handlers
 	start() {
 		var self = this; // If you just call this.update, the scope changes to the window. To keep calling update on this GameBoard object, you have to create an anonymous function and call the update method inside of it.
 		this.paused = false;
 		this.gameLoop = setInterval(function() {self.update()}, this.loopSpeed);
 	}
-
 	pause() {
 		this.paused = true;
 		clearInterval(this.gameLoop);
@@ -454,6 +455,11 @@ class GameBoard {
 		this.ctx.strokeText("Paused", this.canvas.width/2, this.canvas.height/2 - this.bw);
 		this.ctx.fillText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
 		this.ctx.strokeText("Press Space to Continue", this.canvas.width/2, this.canvas.height/2);
+	}
+	kill() {
+		clearInterval(this.gameLoop); // Stop Updating
+		this.SB.removeSelf(); // Remove ScoreBoard
+		this.domEl.remove(); // Remove GameBoard
 	}
 
 	// Update call every loopSpeed ms
@@ -627,7 +633,6 @@ class GameBoard {
 		}
 	}
 }
-
 class ScoreBoard {
 	constructor(gameBoard) {
 		this.GB = gameBoard;
@@ -791,6 +796,10 @@ class SplashScreen {
 
 	}
 
+	kill() {
+
+	}
+
 }
 
 class GameStateHandler {
@@ -810,6 +819,9 @@ class GameStateHandler {
 	loadStateObjects() {
 		switch(this.currentState) {
 			case 0 :
+				this.GBArr.push(new SplashScreen());
+				$('.wrap-game').css('height', this.GBArr[0].canvas.height);
+				$('.wrap-game').css('width', this.width*1.5 + 1);
 				break;
 			case 1 :
 				break;
@@ -831,6 +843,14 @@ class GameStateHandler {
 
 	setState(num) {
 		this.currentState = num;
+		this.killGBArr();
+	}
+
+	killGBArr() {
+		for(var i=0; i<this.GBArr; i++) {
+			this.GBArr[i].kill();
+		}
+		this.GBArr = [];
 	}
 
 	handleKeyPress(e) {
